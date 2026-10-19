@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Deadline Heatmap</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--ink:#14213d;--mute:#64718a;--line:#dde4ef;--brand:#2f6fe4;--brandd:#2459bd;--ok:#1f9d63;
+--l:#8fd19e;--m:#fbe27a;--b:#f8a65f;--u:#ec5a5a;--e:#e8ecf2;--shadow:0 2px 10px rgba(20,33,61,.07);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1624;--card:#18223a;--ink:#e8eefc;--mute:#93a1bd;--line:#2a3857;--e:#222d47;--shadow:none}}
+:root[data-theme="dark"]{--bg:#0f1624;--card:#18223a;--ink:#e8eefc;--mute:#93a1bd;--line:#2a3857;--e:#222d47;--shadow:none}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.hide{display:none!important}
+.wrap{max-width:1040px;margin:0 auto;padding:16px}
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding:20px}
+.lcard{width:100%;max-width:400px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:32px 28px;box-shadow:var(--shadow);text-align:center}
+.lcard h1{margin:0 0 6px;font-size:30px;font-weight:800;letter-spacing:-.02em}
+.lcard p{margin:0 0 22px;color:var(--mute)}
+.field{display:block;text-align:left;margin-bottom:14px}
+.field>span{display:block;font-weight:600;font-size:13.5px;margin-bottom:5px}
+.inp{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--card)}
+.inp:focus{border-color:var(--brand)}
+.btn{border:0;border-radius:8px;padding:12px 16px;font-weight:700;background:var(--brand);color:#fff;width:100%}
+.btn:hover{background:var(--brandd)}
+.btn.ok{background:var(--ok);width:auto}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);width:auto}
+.btn.ghost:hover{background:var(--e)}
+.link{background:none;border:0;color:var(--brand);text-decoration:underline;padding:0;font-weight:600}
+.err{color:#d23a3a;font-size:13.5px;min-height:20px;margin:0 0 8px;text-align:left}
+.sw{margin-top:18px;color:var(--mute);font-size:14px}
+/* topbar */
+.top{background:var(--card);border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 16px;box-shadow:var(--shadow);flex-wrap:wrap}
+.top h2{margin:0;font-size:18px;font-weight:800;padding:8px 0}
+.nav{display:flex;gap:4px;flex-wrap:wrap}
+.nav button{background:none;border:0;border-bottom:3px solid transparent;padding:12px 10px;font-weight:600;font-size:13.5px;color:var(--mute);display:flex;gap:6px;align-items:center}
+.nav button.on{color:var(--brand);border-color:var(--brand)}
+.nav button:hover{color:var(--ink)}
+/* layout */
+.grid{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.nav button span.t{display:none}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 12px;font-size:16px;font-weight:800}
+.mh{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.mh b{font-size:18px;font-weight:700;flex:1}
+.arrow{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--line);background:var(--card);font-size:17px;line-height:1}
+.arrow:hover{background:var(--e)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dow{text-align:center;font-size:12.5px;color:var(--mute);font-weight:600;padding:4px 0}
+.day{aspect-ratio:1.25/1;min-height:42px;border:2px solid transparent;border-radius:7px;font-weight:600;font-size:14px;color:#1b2438;position:relative;padding:0;display:flex;align-items:center;justify-content:center}
+.day.out{background:var(--e);visibility:visible;cursor:default;opacity:.55}
+.day.h0{background:var(--l)}.day.h1{background:var(--m)}.day.h2{background:var(--b)}.day.h3{background:var(--u)}
+.day.today{border-color:var(--ink)}
+.day.sel{box-shadow:0 0 0 3px var(--brand)}
+.day .n{position:absolute;right:4px;bottom:2px;font-size:10px;font-weight:700;opacity:.75}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--mute);margin-top:14px}
+.legend i{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+.list{list-style:none;margin:0;padding:0}
+.item{display:flex;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:6px;width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left}
+.item:last-child{border-bottom:0}
+.item:hover{background:var(--e)}
+.dot{width:12px;height:12px;border-radius:50%;flex:none}
+.item .tt{flex:1;min-width:0}
+.item b{display:block;font-size:14px}
+.item small{color:var(--mute);font-size:12.5px}
+.item.done b{text-decoration:line-through;opacity:.55}
+.pill{font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;flex:none}
+.p-High{background:#fde0e0;color:#c42b2b}.p-Medium{background:#fdf0c4;color:#8a6a00}.p-Low{background:#d9f3e2;color:#17774a}
+.empty{color:var(--mute);padding:14px 4px}
+/* form + detail */
+.panel{max-width:560px;margin:16px auto 0}
+.back{background:none;border:0;font-weight:600;color:var(--mute);padding:4px 0;margin-bottom:10px}
+.back:hover{color:var(--ink)}
+.dhead{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
+.dhead h3{font-size:20px;margin:0 0 6px}
+.dhead p{margin:3px 0;color:var(--mute)}
+.ring{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.ring svg{width:70px;height:70px}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;margin:16px 0;color:var(--mute);font-size:14px}
+.meta b{display:block;color:var(--ink)}
+.acts{display:flex;gap:10px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:99px;font-weight:600;font-size:14px;z-index:20}
+.als{display:grid;gap:8px;margin-top:16px}.al{padding:10px 14px;border-radius:10px;font-size:14px;border:1px solid var(--line);border-left-width:5px;background:var(--card)}.al.bad{border-left-color:var(--u)}.al.warn{border-left-color:var(--b)}.al.soon{border-left-color:var(--m)}.bars{display:flex;align-items:flex-end;gap:5px;height:170px;margin-top:8px}.bc{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:11px;color:var(--mute);gap:3px}.bv{width:100%;border-radius:5px 5px 0 0;min-height:3px}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:16px}.stat b{display:block;font-size:24px;font-weight:800}.stat small{color:var(--mute)}.filters{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px}@media(max-width:760px){.filters{grid-template-columns:1fr 1fr}.filters input{grid-column:1/-1}}.hint{color:var(--mute);font-size:13.5px;margin:0 0 10px}.log li{display:block;font-size:14px}.log small{display:block}.hrow{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13.5px}.hrow span{width:90px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hrow div{flex:1}.hrow i{display:block;height:10px;border-radius:5px;background:var(--brand)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<main id="login" class="login">
+  <form class="lcard" id="lform" novalidate>
+    <h1>Deadline Heatmap</h1>
+    <p id="ltag">See your deadlines. Manage your time.</p>
+    <label class="field hide" id="nameRow"><span>Name</span><input class="inp" id="lname" autocomplete="name" placeholder="Your name"></label>
+    <label class="field"><span>Email or username</span><input class="inp" id="luser" autocomplete="username" placeholder="Email or Username"></label>
+    <label class="field"><span>Password</span><input class="inp" id="lpass" type="password" autocomplete="current-password" placeholder="Password"></label>
+    <p class="err" id="lerr" role="alert"></p>
+    <button class="btn" id="lbtn" type="submit">Login</button>
+    <p class="sw"><span id="lsw">Don’t have an account?</span> <button type="button" class="link" id="ltoggle">Create account</button></p>
+  </form>
+</main>
+
+<!-- APP -->
+<div id="app" class="wrap hide">
+  <header class="top">
+    <h2>Deadline Heatmap</h2>
+    <nav class="nav" aria-label="Main">
+      <button data-v="dash">🏠<span class="t">Dashboard</span></button>
+      <button data-v="cal">🗓<span class="t">Calendar</span></button>
+      <button data-v="tasks">📋<span class="t">Tasks</span></button><button data-v="add">＋<span class="t">Add deadline</span></button><button data-v="stats">📊<span class="t">Stats</span></button><button data-v="hist">🕘<span class="t">History</span></button>
+      <button data-v="prof">👤<span class="t">Profile</span></button>
+    </nav>
+  </header>
+  <section id="view"></section>
+</div>
+<div id="toast" class="toast hide" role="status"></div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const PR={High:1.5,Medium:1,Low:.7};
+const PC={High:'var(--u)',Medium:'var(--b)',Low:'var(--l)'};
+const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+/* storage (guarded) */
+const mem={};
+const store={get(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):(mem[k]||null)}catch(e){return mem[k]||null}},
+set(k,v){mem[k]=v;try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const pad=n=>String(n).padStart(2,'0');
+const iso=(y,m,d)=>y+'-'+pad(m+1)+'-'+pad(d);
+const today=new Date(),TODAY=iso(today.getFullYear(),today.getMonth(),today.getDate());
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=s=>{const[y,m,d]=s.split('-').map(Number);return MN[m-1].slice(0,3)+' '+d+', '+y};
+let logs=[],prefs={},flt={q:'',s:'',p:'',st:'open'},user=null,tasks=[],view='dash',cm=today.getMonth(),cy=today.getFullYear(),sel=null,cur=null,editing=null,signup=false;
+
+/* seed data, placed in the current month */
+function seed(){
+ const y=today.getFullYear(),m=today.getMonth(),D=[[10,'Math 101 – Quiz 3','Math 101','High',2,'Covers chapters 4 to 6.'],[12,'Research Paper','CS 101','High',4.5,'Write a research paper about machine learning applications in the Philippines.'],[15,'English 12 – Essay','English 12','Medium',3,'Argumentative essay, 800 words.'],[18,'NSTP – Reflection Paper','NSTP','Low',1.5,'One-page reflection on the community activity.'],[22,'IT 102 – Lab Report','IT 102','Medium',3,'Lab 5 write-up with screenshots.'],[22,'CS 101 – Project','CS 101','High',5,'Final project demo prep.'],[22,'Math 101 – Problem Set','Math 101','Medium',2,'Problems 1 to 20.']];
+ return D.map((r,i)=>({id:'s'+i,title:r[1],subject:r[2],due:iso(y,m,Math.min(r[0],28)),priority:r[3],hours:r[4],desc:r[5],done:false,created:TODAY}));
+}
+function save(){store.set('dh_tasks_'+user.id,tasks)}
+function log(k,t){logs.unshift({ts:new Date().toISOString(),k:k,t:t.title});logs=logs.slice(0,100);store.set('dh_log_'+user.id,logs)}
+function load(){logs=store.get('dh_log_'+user.id)||[];prefs=store.get('dh_pref_'+user.id)||{};tasks=store.get('dh_tasks_'+user.id);if(!tasks){tasks=seed();save()}}
+
+/* auth */
+const users=()=>store.get('dh_users')||[];
+function setSignup(v){signup=v;$('#nameRow').classList.toggle('hide',!v);$('#lbtn').textContent=v?'Create account':'Login';$('#lsw').textContent=v?'Already have an account?':'Don’t have an account?';$('#ltoggle').textContent=v?'Login':'Create account';$('#lerr').textContent=''}
+$('#ltoggle').onclick=()=>setSignup(!signup);
+$('#lform').onsubmit=e=>{
+ e.preventDefault();
+ const u=$('#luser').value.trim().toLowerCase(),p=$('#lpass').value,n=$('#lname').value.trim(),all=users();
+ if(!u||!p){$('#lerr').textContent='Enter your email or username and password.';return}
+ if(signup){
+  if(p.length<4){$('#lerr').textContent='Use a password with at least 4 characters.';return}
+  if(all.some(x=>x.id===u)){$('#lerr').textContent='That username is taken. Try logging in instead.';return}
+  all.push({id:u,name:n||u,pass:p});store.set('dh_users',all);start({id:u,name:n||u});
+ }else{
+  const f=all.find(x=>x.id===u&&x.pass===p);
+  if(!f){$('#lerr').textContent='Wrong username or password. Check them or create an account.';return}
+  start(f);
+ }
+};
+function start(u){user={id:u.id,name:u.name};store.set('dh_session',user);load();ping();$('#login').classList.add('hide');$('#app').classList.remove('hide');go('dash')}
+function logout(){store.set('dh_session',null);user=null;$('#app').classList.add('hide');$('#login').classList.remove('hide');$('#lpass').value='';setSignup(false)}
+
+/* heat */
+const open=()=>tasks.filter(t=>!t.done);
+function load_of(date){return open().filter(t=>t.due===date).reduce((a,t)=>a+t.hours*PR[t.priority],0)}
+function lvl(s){return s<3?0:s<5?1:s<8?2:3}
+const LN=['Light','Moderate','Busy','Urgent / Overloaded'];
+
+function heat(withSel){
+ const first=new Date(cy,cm,1).getDay(),dim=new Date(cy,cm+1,0).getDate();
+ let h=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>'<div class="dow">'+d+'</div>').join('');
+ for(let i=0;i<first;i++)h+='<div class="day out" aria-hidden="true"></div>';
+ for(let d=1;d<=dim;d++){
+  const k=iso(cy,cm,d),s=load_of(k),c=open().filter(t=>t.due===k).length;
+  h+='<button class="day h'+lvl(s)+(k===TODAY?' today':'')+(withSel&&sel===k?' sel':'')+'" data-d="'+k+'" aria-label="'+fmt(k)+', '+LN[lvl(s)]+', '+c+' deadlines">'+d+(c?'<span class="n">'+c+'</span>':'')+'</button>';
+ }
+ return '<div class="mh"><button class="arrow" data-m="-1" aria-label="Previous month">‹</button><b>'+MN[cm]+' '+cy+'</b><button class="arrow" data-m="1" aria-label="Next month">›</button></div><div class="cal">'+h+'</div>'+
+ '<div class="legend">'+['var(--l)','var(--m)','var(--b)','var(--u)'].map((c,i)=>'<span><i style="background:'+c+'"></i>'+LN[i]+'</span>').join('')+'</div>';
+}
+function row(t,sub){
+ return '<li><button class="item'+(t.done?' done':'')+'" data-t="'+t.id+'"><span class="dot" style="background:'+PC[t.priority]+'"></span><span class="tt"><b>'+esc(t.title)+'</b><small>'+(sub==='sp'?esc(t.subject)+' • ':'')+fmt(t.due)+(sub!=='sp'?'':'')+'</small></span>'+(sub==='sp'?'<span class="pill p-'+t.priority+'">'+t.priority+'</span>':'')+'</button></li>';
+}
+
+/* views */
+function go(v,arg){
+ view=v;
+ document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===(v==='detail'?'dash':v)));
+ const el=$('#view');
+ if(v==='dash'){
+  const up=open().filter(t=>t.due>=TODAY).sort((a,b)=>a.due<b.due?-1:1).slice(0,6);
+  el.innerHTML=alerts()+'<div class="grid"><div class="card" id="hm">'+heat(false)+'</div><div class="card"><h3>Upcoming deadlines</h3><ul class="list">'+(up.length?up.map(t=>row(t)).join(''):'<li class="empty">Nothing coming up. Add a deadline to start your heatmap.</li>')+'</ul></div></div>';
+ }else if(v==='cal'){
+  const mk=iso(cy,cm,1).slice(0,7);
+  let ms=tasks.filter(t=>t.due.startsWith(mk)).sort((a,b)=>a.due<b.due?-1:1);
+  const title=sel&&sel.startsWith(mk)?'Deadlines on '+fmt(sel):'Deadlines this month';
+  if(sel&&sel.startsWith(mk))ms=ms.filter(t=>t.due===sel);
+  el.innerHTML='<div class="grid"><div class="card" id="hm">'+heat(true)+'</div><div class="card"><h3>'+title+'</h3>'+(sel&&sel.startsWith(mk)?'<p style="margin:-6px 0 8px"><button class="link" id="clr">Show whole month</button></p>':'')+'<ul class="list">'+(ms.length?ms.map(t=>row(t,'sp')).join(''):'<li class="empty">No deadlines here. Pick another day or add one.</li>')+'</ul></div></div>';
+ }else if(v==='add'){
+  const e=editing,t=e||{title:'',subject:'',due:'',priority:'Medium',hours:''};
+  const subs=[...new Set(['CS 101','Math 101','English 12','IT 102','NSTP'].concat(tasks.map(x=>x.subject)))];
+  el.innerHTML='<form class="card panel" id="af" novalidate><button type="button" class="back" data-go="'+(e?'detail':'dash')+'">← '+(e?'Back to details':'Back to dashboard')+'</button><h3>'+(e?'Edit deadline':'Add deadline')+'</h3>'+
+  '<label class="field"><span>Task / assignment</span><input class="inp" id="f_t" placeholder="e.g. Research Paper, Quiz 1" value="'+esc(t.title)+'"></label>'+
+  '<label class="field"><span>Subject</span><select class="inp" id="f_s"><option value="">Select subject</option>'+subs.map(s=>'<option'+(s===t.subject?' selected':'')+'>'+esc(s)+'</option>').join('')+'<option value="__new">+ New subject…</option></select></label>'+
+  '<label class="field"><span>Due date</span><input class="inp" id="f_d" type="date" value="'+t.due+'"></label>'+
+  '<label class="field"><span>Priority</span><select class="inp" id="f_p">'+['Low','Medium','High'].map(p=>'<option'+(p===t.priority?' selected':'')+'>'+p+'</option>').join('')+'</select></label>'+
+  '<label class="field"><span>Estimated hours</span><input class="inp" id="f_h" type="number" min="0.5" step="0.5" placeholder="e.g. 3" value="'+t.hours+'"></label>'+
+  '<label class="field"><span>Description (optional)</span><textarea class="inp" id="f_x" rows="3">'+esc(t.desc||'')+'</textarea></label>'+
+  '<p class="err" id="ferr" role="alert"></p><button class="btn" type="submit">'+(e?'Save changes':'Add deadline')+'</button></form>';
+ }else if(v==='detail'){
+  const t=tasks.find(x=>x.id===arg);if(!t){go('dash');return}
+  cur=t.id;
+  const s=t.hours*PR[t.priority],L=lvl(s),lab=['Low','Moderate','High','Very high'][L],col=['var(--l)','var(--m)','var(--b)','var(--u)'][L];
+  const pct=Math.min(1,t.hours/6),C=2*Math.PI*28;
+  el.innerHTML='<div class="card panel" style="max-width:640px"><button class="back" data-go="dash">← Back to dashboard</button><div class="dhead"><div><h3>'+esc(t.title)+'</h3><p>Subject: '+esc(t.subject)+'</p><p>Due date: '+fmt(t.due)+'</p><p>Priority: <span class="pill p-'+t.priority+'">'+t.priority+'</span></p></div>'+
+  '<div class="ring"><svg viewBox="0 0 70 70" aria-hidden="true"><circle cx="35" cy="35" r="28" fill="none" stroke="var(--e)" stroke-width="9"/><circle cx="35" cy="35" r="28" fill="none" stroke="'+col+'" stroke-width="9" stroke-dasharray="'+(C*pct)+' '+C+'" transform="rotate(-90 35 35)"/></svg><div><small style="color:var(--mute)">Workload</small><br><b style="font-size:18px">'+lab+'</b><br><small style="color:var(--mute)">('+t.hours+' / 6 hrs)</small></div></div></div>'+
+  '<h3 style="margin-top:18px">Description</h3><p style="color:var(--mute);margin:0">'+(t.desc?esc(t.desc):'No description added.')+'</p>'+
+  '<div class="meta"><div>Estimated hours<b>'+t.hours+' hours</b></div><div>Created<b>'+fmt(t.created)+'</b></div></div>'+
+  '<div class="acts">'+(t.done?'<span class="pill p-Low" style="padding:10px 16px">Completed ✓</span><button class="btn ghost" id="undo">Mark as not done</button>':'<button class="btn ok" id="done">✓ Mark as complete</button>')+'<button class="btn ghost" id="edit">✎ Edit</button><button class="btn ghost" id="del">Delete</button></div></div>';
+ }else if(v==='tasks'){
+ const subs=[...new Set(tasks.map(t=>t.subject))];
+ el.innerHTML='<div class="card" style="margin-top:16px"><h3>All deadlines</h3><div class="filters"><input class="inp" id="q_q" type="search" placeholder="Search tasks or subjects" aria-label="Search" value="'+esc(flt.q)+'"><select class="inp" id="q_s" aria-label="Subject"><option value="">All subjects</option>'+subs.map(s=>'<option'+(s===flt.s?' selected':'')+'>'+esc(s)+'</option>').join('')+'</select><select class="inp" id="q_p" aria-label="Priority"><option value="">All priorities</option>'+['High','Medium','Low'].map(p=>'<option'+(p===flt.p?' selected':'')+'>'+p+'</option>').join('')+'</select><select class="inp" id="q_st" aria-label="Status">'+[['open','Open'],['overdue','Overdue'],['done','Completed'],['all','All']].map(a=>'<option value="'+a[0]+'"'+(a[0]===flt.st?' selected':'')+'>'+a[1]+'</option>').join('')+'</select></div><ul class="list" id="tl" style="margin-top:10px">'+tlist()+'</ul></div>';
+}else if(v==='stats'){
+ const o=open(),dn=tasks.filter(t=>t.done).length,ov=o.filter(t=>t.due<TODAY).length,hl=o.reduce((a,t)=>a+t.hours,0),HC=['var(--l)','var(--m)','var(--b)','var(--u)'];
+ const days=[...Array(14)].map((_,i)=>addD(TODAY,i)),hrs=days.map(d=>o.filter(t=>t.due===d).reduce((a,t)=>a+t.hours,0)),mx=Math.max(4,...hrs),bs=days.reduce((a,d,i)=>hrs[i]>hrs[a]?i:a,0);
+ const by={};o.forEach(t=>{by[t.subject]=(by[t.subject]||0)+t.hours});const bk=Object.entries(by).sort((a,b)=>b[1]-a[1]),bm=bk.length?bk[0][1]:1;
+ el.innerHTML='<div class="stats">'+[['Open',o.length],['Completed',dn],['Overdue',ov],['Hours left',hl],['Completion',tasks.length?Math.round(dn/tasks.length*100)+'%':'0%']].map(a=>'<div class="card stat"><b>'+a[1]+'</b><small>'+a[0]+'</small></div>').join('')+'</div><div class="grid"><div class="card"><h3>Workload, next 14 days (hours)</h3><div class="bars">'+days.map((d,i)=>'<div class="bc">'+(hrs[i]||'')+'<div class="bv" style="height:'+(hrs[i]/mx*75)+'%;background:'+HC[lvl(load_of(d))]+'" title="'+fmt(d)+': '+hrs[i]+' hrs"></div>'+d.slice(8)+'</div>').join('')+'</div><p class="hint" style="margin:12px 0 0">'+(hrs[bs]?'Busiest day: '+fmt(days[bs])+' with '+hrs[bs]+' hours.':'No open deadlines in the next 14 days.')+'</p></div><div class="card"><h3>Hours left by subject</h3>'+(bk.length?bk.map(a=>'<div class="hrow"><span>'+esc(a[0])+'</span><div><i style="width:'+(a[1]/bm*100)+'%"></i></div><b>'+a[1]+'</b></div>').join(''):'<p class="empty">Nothing open. Nice.</p>')+'</div></div>';
+}else if(v==='hist'){
+ const dn=tasks.filter(t=>t.done).sort((a,b)=>(b.doneAt||'').localeCompare(a.doneAt||''));
+ el.innerHTML='<div class="grid"><div class="card"><h3>Activity</h3>'+(logs.length?'<ul class="list log">'+logs.map(l=>'<li><b>'+l.k+'</b> '+esc(l.t)+'<small>'+new Date(l.ts).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</small></li>').join('')+'</ul><p style="margin:12px 0 0"><button class="link" id="clrlog">Clear activity</button></p>':'<p class="empty">No activity yet. Add or complete a deadline and it shows up here.</p>')+'</div><div class="card"><h3>Completed</h3><ul class="list">'+(dn.length?dn.map(t=>row(t,'sp')).join(''):'<li class="empty">Nothing completed yet.</li>')+'</ul></div></div>';
+}else if(v==='prof'){
+  const dn=tasks.filter(t=>t.done).length,ov=open().filter(t=>t.due<TODAY).length;
+  el.innerHTML='<div class="card panel"><h3>Profile</h3><p style="margin:0 0 4px"><b>'+esc(user.name)+'</b></p><p style="margin:0 0 16px;color:var(--mute)">'+esc(user.id)+'</p><div class="meta" style="grid-template-columns:1fr 1fr 1fr"><div>Open<b>'+open().length+'</b></div><div>Completed<b>'+dn+'</b></div><div>Overdue<b>'+ov+'</b></div></div><div class="acts"><button class="btn ghost" id="theme">Switch light / dark</button><button class="btn ghost" id="out">Log out</button></div><h3 style="margin-top:24px">Reminders</h3><p class="hint">Overdue and due-soon deadlines show on your dashboard. Browser notifications work while the app is open.</p><button class="btn ghost" id="notif">'+(prefs.notif?'Turn off':'Turn on')+' browser reminders</button><h3 style="margin-top:24px">Backup</h3><p class="hint">Export copies your data so you can paste it on another device. Import replaces your current deadlines.</p><textarea class="inp" id="bk" rows="4" placeholder="Backup code appears here"></textarea><div class="acts" style="margin-top:8px"><button class="btn ghost" id="bexp">Export</button><button class="btn ghost" id="bimp">Import</button></div><p class="hint" id="bmsg" role="status" style="margin-top:8px"></p></div>';
+ }
+ window.scrollTo(0,0);
+}
+
+function addD(s,n){const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return iso(d.getFullYear(),d.getMonth(),d.getDate())}
+function alerts(){const o=open(),T1=addD(TODAY,1),g=[['bad','Overdue',o.filter(t=>t.due<TODAY)],['warn','Due today',o.filter(t=>t.due===TODAY)],['soon','Due tomorrow',o.filter(t=>t.due===T1)]].filter(a=>a[2].length);return g.length?'<div class="als">'+g.map(a=>'<div class="al '+a[0]+'" role="status"><b>'+a[1]+' ('+a[2].length+')</b> – '+a[2].slice(0,3).map(t=>esc(t.title)).join(', ')+(a[2].length>3?'…':'')+'</div>').join('')+'</div>':''}
+function tlist(){const q=flt.q.toLowerCase(),L=tasks.filter(t=>(!q||(t.title+' '+t.subject).toLowerCase().includes(q))&&(!flt.s||t.subject===flt.s)&&(!flt.p||t.priority===flt.p)&&(flt.st==='all'||(flt.st==='open'&&!t.done)||(flt.st==='done'&&t.done)||(flt.st==='overdue'&&!t.done&&t.due<TODAY))).sort((a,b)=>a.due<b.due?-1:1);return L.length?L.map(t=>row(t,'sp')).join(''):'<li class="empty">No deadlines match. Clear a filter or add a new deadline.</li>'}
+function ping(){try{if(!prefs.notif||Notification.permission!=='granted')return;const o=open(),a=o.filter(t=>t.due<TODAY).length,b=o.filter(t=>t.due===TODAY).length;if(a||b)new Notification('Deadline Heatmap',{body:(a?a+' overdue. ':'')+(b?b+' due today.':'')})}catch(_){}}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.remove('hide');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.add('hide'),2200)}
+
+/* events (delegated) */
+document.addEventListener('click',e=>{
+ const q=s=>e.target.closest(s);let x;
+ if(!user)return;
+ if(x=q('.nav button')){editing=null;if(x.dataset.v==='cal')sel=null;go(x.dataset.v)}
+ else if(x=q('[data-go]')){const g=x.dataset.go;if(g==='detail'){const id=editing&&editing.id;editing=null;go('detail',id)}else{editing=null;go(g)}}
+ else if(x=q('[data-m]')){cm+=+x.dataset.m;if(cm<0){cm=11;cy--}if(cm>11){cm=0;cy++}go(view)}
+ else if(x=q('.day[data-d]')){if(view==='cal'){sel=sel===x.dataset.d?null:x.dataset.d;go('cal')}else{sel=x.dataset.d;go('cal')}}
+ else if(q('#clr')){sel=null;go('cal')}
+ else if(x=q('[data-t]'))go('detail',x.dataset.t);
+ else if(q('#done')){const T=tasks.find(t=>t.id===cur);T.done=true;T.doneAt=new Date().toISOString();log('Completed',T);save();toast('Marked as complete');go('detail',cur)}
+ else if(q('#undo')){const T=tasks.find(t=>t.id===cur);T.done=false;log('Reopened',T);save();go('detail',cur)}
+ else if(q('#edit')){editing=tasks.find(t=>t.id===cur);go('add')}
+ else if(q('#del')){const b=q('#del');if(b.dataset.s!=='1'){b.dataset.s='1';b.textContent='Tap again to delete';return}log('Deleted',tasks.find(t=>t.id===cur));tasks=tasks.filter(t=>t.id!==cur);save();toast('Deadline deleted');go('dash')}
+ else if(q('#clrlog')){logs=[];store.set('dh_log_'+user.id,logs);go('hist')}
+ else if(q('#notif')){if(prefs.notif){prefs.notif=false;store.set('dh_pref_'+user.id,prefs);go('prof');return}try{Notification.requestPermission().then(p=>{prefs.notif=p==='granted';store.set('dh_pref_'+user.id,prefs);toast(prefs.notif?'Browser reminders on':'Notifications are blocked. Allow them in your browser settings.');go('prof');if(prefs.notif)ping()})}catch(_){toast('This browser doesn’t support notifications.')}}
+ else if(q('#bexp')){const s=JSON.stringify({app:'deadline-heatmap',v:1,tasks:tasks,logs:logs});$('#bk').value=s;$('#bk').select();try{navigator.clipboard.writeText(s).then(()=>{$('#bmsg').textContent='Backup copied. Paste it into a note or message to yourself.'},()=>{})}catch(_){}try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'application/json'}));a.download='deadline-heatmap-backup.json';a.click()}catch(_){}$('#bmsg').textContent='Backup ready. Copy the code above and paste it on your other device.'}
+ else if(q('#bimp')){try{const d=JSON.parse($('#bk').value);if(!d||!Array.isArray(d.tasks))throw 0;tasks=d.tasks.filter(t=>t&&t.id&&t.title&&t.due&&t.due.length===10&&PR[t.priority]&&t.hours>0);logs=Array.isArray(d.logs)?d.logs:[];save();store.set('dh_log_'+user.id,logs);$('#bmsg').textContent='Imported '+tasks.length+' deadlines. Your previous list was replaced.'}catch(_){$('#bmsg').textContent='That isn’t a valid backup. Paste the full text you exported.'}}
+ else if(q('#out'))logout();
+ else if(q('#theme')){const r=document.documentElement,dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark'}
+});
+document.addEventListener('change',e=>{
+ if(e.target.id==='f_s'&&e.target.value==='__new'){
+  const n=(prompt('New subject name')||'').trim();
+  if(n){const o=document.createElement('option');o.textContent=n;e.target.insertBefore(o,e.target.lastElementChild);e.target.value=n}else e.target.value='';
+ }
+});
+document.addEventListener('submit',e=>{
+ if(e.target.id!=='af')return;
+ e.preventDefault();
+ const t=$('#f_t').value.trim(),s=$('#f_s').value,d=$('#f_d').value,p=$('#f_p').value,h=parseFloat($('#f_h').value),x=$('#f_x').value.trim(),er=$('#ferr');
+ if(!t){er.textContent='Enter a task name.';return}
+ if(!s||s==='__new'){er.textContent='Pick a subject.';return}
+ if(!d){er.textContent='Choose a due date.';return}
+ if(!(h>0)){er.textContent='Enter the estimated hours (more than 0).';return}
+ if(editing){Object.assign(editing,{title:t,subject:s,due:d,priority:p,hours:h,desc:x});const id=editing.id;log('Edited',editing);editing=null;save();toast('Changes saved');go('detail',id)}
+ else{const n={id:'t'+Date.now(),title:t,subject:s,due:d,priority:p,hours:h,desc:x,done:false,created:TODAY};tasks.push(n);log('Added',n);save();const[yy,mm]=d.split('-').map(Number);cy=yy;cm=mm-1;sel=d;toast('Deadline added');go('cal')}
+});
+
+document.addEventListener('input',e=>{const i=e.target.id;if(!user||!i||i.indexOf('q_')!==0)return;flt[{q_q:'q',q_s:'s',q_p:'p',q_st:'st'}[i]]=e.target.value;$('#tl').innerHTML=tlist()});
+/* init */
+const ses=store.get('dh_session');
+if(ses)start(ses);
+})();
+</script>
+</body>
+</html>
