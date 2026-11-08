@@ -101,6 +101,8 @@ html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;overflow-x:hidd
 .day{min-height:40px;font-size:13px}
 .panel{margin-top:12px}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);border:1.5px solid var(--line);border-radius:10px;overflow:hidden}.seg button{border:0;background:var(--card);padding:10px 0;font-weight:600;font-size:13.5px}.seg button.on{background:var(--brand);color:#fff}.seg button+button{border-left:1.5px solid var(--line)}
+.pw{list-style:none;margin:-6px 0 12px;padding:0;text-align:left;font-size:13px;color:var(--mute)}.pw li{padding:1px 0}.pw li:before{content:"✗ ";color:#d23a3a;font-weight:700}.pw li.ok{color:var(--ok)}.pw li.ok:before{content:"✓ ";color:var(--ok)}.pw li.all{font-weight:700}.inp.strong{border-color:var(--ok);background:rgba(31,157,99,.14)}
+@media(min-width:761px){html,body{touch-action:auto}.wrap{max-width:1040px;padding:16px}.card{padding:16px}.grid{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:16px;margin-top:16px}.top{padding:6px 16px}.top h2{font-size:18px;padding:8px 0}.nav{display:flex;width:auto;gap:4px}.nav button{flex-direction:row;gap:6px;padding:12px 10px;font-size:13.5px}.nav button span.t{font-size:13.5px}.cal{gap:5px}.day{min-height:42px;font-size:14px}.panel{margin-top:16px}}
 </style>
 </head>
 <body>
@@ -113,6 +115,7 @@ html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;overflow-x:hidd
     <label class="field hide" id="nameRow"><span>Name</span><input class="inp" id="lname" autocomplete="name" placeholder="Your name"></label>
     <label class="field"><span>Email or username</span><input class="inp" id="luser" autocomplete="username" placeholder="Email or Username"></label>
     <label class="field"><span id="lpassL">Password</span><input class="inp" id="lpass" type="password" autocomplete="current-password" placeholder="Password"></label>
+    <ul class="pw hide" id="pwHint" aria-live="polite"></ul>
     <label class="field hide" id="recRow"><span id="recLbl">Recovery word</span><input class="inp" id="lrec" autocomplete="off" placeholder="A word only you know"></label>
     <p id="fgRow" style="text-align:right;margin:-6px 0 12px"><button type="button" class="link" id="lforgot">Forgot password?</button></p>
     <p class="err" id="lerr" role="alert"></p>
@@ -165,16 +168,16 @@ function load(){logs=store.get('dh_log_'+user.id)||[];prefs=store.get('dh_pref_'
 
 /* auth */
 const users=()=>store.get('dh_users')||[];
-function setSignup(v){forgot=false;signup=v;$('#recRow').classList.toggle('hide',!v);$('#recLbl').textContent='Recovery word';$('#fgRow').classList.toggle('hide',v);$('#lpassL').textContent='Password';$('#lpass').placeholder='Password';$('#nameRow').classList.toggle('hide',!v);$('#lbtn').textContent=v?'Create account':'Login';$('#lsw').textContent=v?'Already have an account?':'Don’t have an account?';$('#ltoggle').textContent=v?'Login':'Create account';$('#lerr').textContent=''}
+function setSignup(v){forgot=false;signup=v;setTimeout(pwUpdate,0);$('#recRow').classList.toggle('hide',!v);$('#recLbl').textContent='Recovery word';$('#fgRow').classList.toggle('hide',v);$('#lpassL').textContent='Password';$('#lpass').placeholder='Password';$('#nameRow').classList.toggle('hide',!v);$('#lbtn').textContent=v?'Create account':'Login';$('#lsw').textContent=v?'Already have an account?':'Don’t have an account?';$('#ltoggle').textContent=v?'Login':'Create account';$('#lerr').textContent=''}
 $('#ltoggle').onclick=()=>setSignup(forgot?false:!signup);
 $('#lform').onsubmit=e=>{
  e.preventDefault();
  const u=$('#luser').value.trim().toLowerCase(),p=$('#lpass').value,n=$('#lname').value.trim(),all=users();
  const rc=$('#lrec').value.trim().toLowerCase();
- if(forgot){const f=all.find(x=>x.id===u);if(!u||!p||!rc){$('#lerr').textContent='Fill in your username, recovery word, and a new password.';return}if(p.length<4){$('#lerr').textContent='Use a new password with at least 4 characters.';return}if(!f){$('#lerr').textContent='No account found with that username.';return}if(!f.rec){$('#lerr').textContent='This account has no recovery word yet. Log in and set one in Profile, or create a new account.';return}if(f.rec!==rc){$('#lerr').textContent='That recovery word doesn’t match.';return}f.pass=p;store.set('dh_users',all);setSignup(false);$('#lpass').value='';toast('Password changed. Log in with your new password.');return}
+ if(forgot){const f=all.find(x=>x.id===u);if(!u||!p||!rc){$('#lerr').textContent='Fill in your username, recovery word, and a new password.';return}if(!pwRules(p).every(x=>x[1])){$('#lerr').textContent='Your new password doesn’t meet all the requirements yet.';return}if(!f){$('#lerr').textContent='No account found with that username.';return}if(!f.rec){$('#lerr').textContent='This account has no recovery word yet. Log in and set one in Profile, or create a new account.';return}if(f.rec!==rc){$('#lerr').textContent='That recovery word doesn’t match.';return}f.pass=p;store.set('dh_users',all);setSignup(false);$('#lpass').value='';toast('Password changed. Log in with your new password.');return}
  if(!u||!p){$('#lerr').textContent='Enter your email or username and password.';return}
  if(signup){
-  if(p.length<4){$('#lerr').textContent='Use a password with at least 4 characters.';return}
+  if(!pwRules(p).every(x=>x[1])){$('#lerr').textContent='Your password doesn’t meet all the requirements yet.';return}
   if(rc.length<2){$('#lerr').textContent='Add a recovery word. You need it to reset your password.';return}
   if(all.some(x=>x.id===u)){$('#lerr').textContent='That username is taken. Try logging in instead.';return}
   all.push({id:u,name:n||u,pass:p,rec:rc});store.set('dh_users',all);start({id:u,name:n||u});
@@ -269,6 +272,8 @@ function setTheme(m){store.set('dh_theme',m);applyTheme();if(view==='prof')go('p
 function applyTheme(){const m=store.get('dh_theme')||'auto',r=document.documentElement;if(m==='auto')delete r.dataset.theme;else r.dataset.theme=m}
 function themeSeg(){const m=store.get('dh_theme')||'auto';return '<div class="seg" role="group" aria-label="Theme">'+[['light','☀ Light'],['dark','🌙 Dark'],['auto','Auto']].map(a=>'<button type="button" data-th="'+a[0]+'" aria-pressed="'+(m===a[0])+'" class="'+(m===a[0]?'on':'')+'">'+a[1]+'</button>').join('')+'</div>'}
 function curRec(){const f=users().find(x=>x.id===user.id);return f&&f.rec}
+function pwRules(p){return[['At least 8 characters',p.length>=8],['An uppercase letter (A-Z)',/[A-Z]/.test(p)],['A lowercase letter (a-z)',/[a-z]/.test(p)],['A special character (! @ # $ %)',/[^A-Za-z0-9 ]/.test(p)]]}
+function pwUpdate(){const el=$('#pwHint'),i=$('#lpass'),on=signup||forgot;el.classList.toggle('hide',!on);if(!on){i.classList.remove('strong');return}const r=pwRules(i.value),all=r.every(x=>x[1]);i.classList.toggle('strong',all);el.innerHTML=all?'<li class="ok all">Strong password</li>':r.map(x=>'<li'+(x[1]?' class="ok"':'')+'>'+x[0]+'</li>').join('')}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.remove('hide');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.add('hide'),2200)}
 
 /* events (delegated) */
@@ -315,6 +320,7 @@ document.addEventListener('submit',e=>{
 document.addEventListener('input',e=>{const i=e.target.id;if(!user||!i||i.indexOf('q_')!==0)return;flt[{q_q:'q',q_s:'s',q_p:'p',q_st:'st'}[i]]=e.target.value;$('#tl').innerHTML=tlist()});
 $('#lforgot').onclick=()=>{setSignup(false);forgot=true;$('#recRow').classList.remove('hide');$('#recLbl').textContent='Recovery word';$('#lpassL').textContent='New password';$('#lpass').placeholder='New password';$('#fgRow').classList.add('hide');$('#lbtn').textContent='Reset password';$('#lsw').textContent='Remembered it?';$('#ltoggle').textContent='Login'};
 applyTheme();
+$('#lpass').addEventListener('input',pwUpdate);pwUpdate();
 /* init */
 const ses=store.get('dh_session');
 if(ses)start(ses);
