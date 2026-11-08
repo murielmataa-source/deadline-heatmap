@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Deadline Heatmap</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -88,6 +88,19 @@ button{cursor:pointer}
 .acts{display:flex;gap:10px;flex-wrap:wrap}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:99px;font-weight:600;font-size:14px;z-index:20}
 .als{display:grid;gap:8px;margin-top:16px}.al{padding:10px 14px;border-radius:10px;font-size:14px;border:1px solid var(--line);border-left-width:5px;background:var(--card)}.al.bad{border-left-color:var(--u)}.al.warn{border-left-color:var(--b)}.al.soon{border-left-color:var(--m)}.bars{display:flex;align-items:flex-end;gap:5px;height:170px;margin-top:8px}.bc{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:11px;color:var(--mute);gap:3px}.bv{width:100%;border-radius:5px 5px 0 0;min-height:3px}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:16px}.stat b{display:block;font-size:24px;font-weight:800}.stat small{color:var(--mute)}.filters{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px}@media(max-width:760px){.filters{grid-template-columns:1fr 1fr}.filters input{grid-column:1/-1}}.hint{color:var(--mute);font-size:13.5px;margin:0 0 10px}.log li{display:block;font-size:14px}.log small{display:block}.hrow{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13.5px}.hrow span{width:90px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hrow div{flex:1}.hrow i{display:block;height:10px;border-radius:5px;background:var(--brand)}
+html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;overflow-x:hidden}
+.wrap{max-width:412px;padding:10px}
+.card{padding:12px}
+.grid{grid-template-columns:1fr;gap:12px;margin-top:12px}
+.top{padding:4px 10px}
+.top h2{font-size:17px;padding:6px 0}
+.nav{display:grid;grid-template-columns:repeat(7,1fr);width:100%;gap:0}
+.nav button{flex-direction:column;justify-content:center;align-items:center;gap:1px;padding:6px 0 7px;font-size:16px;line-height:1.2}
+.nav button span.t{display:block;font-size:9.5px}
+.cal{gap:4px}
+.day{min-height:40px;font-size:13px}
+.panel{margin-top:12px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1.5px solid var(--line);border-radius:10px;overflow:hidden}.seg button{border:0;background:var(--card);padding:10px 0;font-weight:600;font-size:13.5px}.seg button.on{background:var(--brand);color:#fff}.seg button+button{border-left:1.5px solid var(--line)}
 </style>
 </head>
 <body>
@@ -99,7 +112,9 @@ button{cursor:pointer}
     <p id="ltag">See your deadlines. Manage your time.</p>
     <label class="field hide" id="nameRow"><span>Name</span><input class="inp" id="lname" autocomplete="name" placeholder="Your name"></label>
     <label class="field"><span>Email or username</span><input class="inp" id="luser" autocomplete="username" placeholder="Email or Username"></label>
-    <label class="field"><span>Password</span><input class="inp" id="lpass" type="password" autocomplete="current-password" placeholder="Password"></label>
+    <label class="field"><span id="lpassL">Password</span><input class="inp" id="lpass" type="password" autocomplete="current-password" placeholder="Password"></label>
+    <label class="field hide" id="recRow"><span id="recLbl">Recovery word</span><input class="inp" id="lrec" autocomplete="off" placeholder="A word only you know"></label>
+    <p id="fgRow" style="text-align:right;margin:-6px 0 12px"><button type="button" class="link" id="lforgot">Forgot password?</button></p>
     <p class="err" id="lerr" role="alert"></p>
     <button class="btn" id="lbtn" type="submit">Login</button>
     <p class="sw"><span id="lsw">Don’t have an account?</span> <button type="button" class="link" id="ltoggle">Create account</button></p>
@@ -113,7 +128,7 @@ button{cursor:pointer}
     <nav class="nav" aria-label="Main">
       <button data-v="dash">🏠<span class="t">Dashboard</span></button>
       <button data-v="cal">🗓<span class="t">Calendar</span></button>
-      <button data-v="tasks">📋<span class="t">Tasks</span></button><button data-v="add">＋<span class="t">Add deadline</span></button><button data-v="stats">📊<span class="t">Stats</span></button><button data-v="hist">🕘<span class="t">History</span></button>
+      <button data-v="tasks">📋<span class="t">Tasks</span></button><button data-v="add">＋<span class="t">Add</span></button><button data-v="stats">📊<span class="t">Stats</span></button><button data-v="hist">🕘<span class="t">History</span></button>
       <button data-v="prof">👤<span class="t">Profile</span></button>
     </nav>
   </header>
@@ -125,6 +140,7 @@ button{cursor:pointer}
 (function(){
 const $=s=>document.querySelector(s);
 const PR={High:1.5,Medium:1,Low:.7};
+const SUBJ=['ITEC80','COSC 100','COSC 105','COSC 111','Thesis 1'],OLD={'CS 101':'COSC 100','Math 101':'ITEC80','English 12':'COSC 105','IT 102':'COSC 111','NSTP':'Thesis 1'};
 const PC={High:'var(--u)',Medium:'var(--b)',Low:'var(--l)'};
 const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
 /* storage (guarded) */
@@ -136,7 +152,7 @@ const iso=(y,m,d)=>y+'-'+pad(m+1)+'-'+pad(d);
 const today=new Date(),TODAY=iso(today.getFullYear(),today.getMonth(),today.getDate());
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=s=>{const[y,m,d]=s.split('-').map(Number);return MN[m-1].slice(0,3)+' '+d+', '+y};
-let logs=[],prefs={},flt={q:'',s:'',p:'',st:'open'},user=null,tasks=[],view='dash',cm=today.getMonth(),cy=today.getFullYear(),sel=null,cur=null,editing=null,signup=false;
+let forgot=false,logs=[],prefs={},flt={q:'',s:'',p:'',st:'open'},user=null,tasks=[],view='dash',cm=today.getMonth(),cy=today.getFullYear(),sel=null,cur=null,editing=null,signup=false;
 
 /* seed data, placed in the current month */
 function seed(){
@@ -145,20 +161,23 @@ function seed(){
 }
 function save(){store.set('dh_tasks_'+user.id,tasks)}
 function log(k,t){logs.unshift({ts:new Date().toISOString(),k:k,t:t.title});logs=logs.slice(0,100);store.set('dh_log_'+user.id,logs)}
-function load(){logs=store.get('dh_log_'+user.id)||[];prefs=store.get('dh_pref_'+user.id)||{};tasks=store.get('dh_tasks_'+user.id);if(!tasks){tasks=seed();save()}}
+function load(){logs=store.get('dh_log_'+user.id)||[];prefs=store.get('dh_pref_'+user.id)||{};tasks=store.get('dh_tasks_'+user.id);if(!tasks)tasks=seed();let ch=!store.get('dh_tasks_'+user.id);tasks.forEach(t=>{if(t.id.charAt(0)==='s')Object.keys(OLD).forEach(k=>{if(t.title.includes(k)){t.title=t.title.split(k).join(OLD[k]);ch=true}});if(!SUBJ.includes(t.subject)){t.subject=OLD[t.subject]||'ITEC80';ch=true}});if(ch)save()}
 
 /* auth */
 const users=()=>store.get('dh_users')||[];
-function setSignup(v){signup=v;$('#nameRow').classList.toggle('hide',!v);$('#lbtn').textContent=v?'Create account':'Login';$('#lsw').textContent=v?'Already have an account?':'Don’t have an account?';$('#ltoggle').textContent=v?'Login':'Create account';$('#lerr').textContent=''}
-$('#ltoggle').onclick=()=>setSignup(!signup);
+function setSignup(v){forgot=false;signup=v;$('#recRow').classList.toggle('hide',!v);$('#recLbl').textContent='Recovery word';$('#fgRow').classList.toggle('hide',v);$('#lpassL').textContent='Password';$('#lpass').placeholder='Password';$('#nameRow').classList.toggle('hide',!v);$('#lbtn').textContent=v?'Create account':'Login';$('#lsw').textContent=v?'Already have an account?':'Don’t have an account?';$('#ltoggle').textContent=v?'Login':'Create account';$('#lerr').textContent=''}
+$('#ltoggle').onclick=()=>setSignup(forgot?false:!signup);
 $('#lform').onsubmit=e=>{
  e.preventDefault();
  const u=$('#luser').value.trim().toLowerCase(),p=$('#lpass').value,n=$('#lname').value.trim(),all=users();
+ const rc=$('#lrec').value.trim().toLowerCase();
+ if(forgot){const f=all.find(x=>x.id===u);if(!u||!p||!rc){$('#lerr').textContent='Fill in your username, recovery word, and a new password.';return}if(p.length<4){$('#lerr').textContent='Use a new password with at least 4 characters.';return}if(!f){$('#lerr').textContent='No account found with that username.';return}if(!f.rec){$('#lerr').textContent='This account has no recovery word yet. Log in and set one in Profile, or create a new account.';return}if(f.rec!==rc){$('#lerr').textContent='That recovery word doesn’t match.';return}f.pass=p;store.set('dh_users',all);setSignup(false);$('#lpass').value='';toast('Password changed. Log in with your new password.');return}
  if(!u||!p){$('#lerr').textContent='Enter your email or username and password.';return}
  if(signup){
   if(p.length<4){$('#lerr').textContent='Use a password with at least 4 characters.';return}
+  if(rc.length<2){$('#lerr').textContent='Add a recovery word. You need it to reset your password.';return}
   if(all.some(x=>x.id===u)){$('#lerr').textContent='That username is taken. Try logging in instead.';return}
-  all.push({id:u,name:n||u,pass:p});store.set('dh_users',all);start({id:u,name:n||u});
+  all.push({id:u,name:n||u,pass:p,rec:rc});store.set('dh_users',all);start({id:u,name:n||u});
  }else{
   const f=all.find(x=>x.id===u&&x.pass===p);
   if(!f){$('#lerr').textContent='Wrong username or password. Check them or create an account.';return}
@@ -196,7 +215,7 @@ function go(v,arg){
  const el=$('#view');
  if(v==='dash'){
   const up=open().filter(t=>t.due>=TODAY).sort((a,b)=>a.due<b.due?-1:1).slice(0,6);
-  el.innerHTML=alerts()+'<div class="grid"><div class="card" id="hm">'+heat(false)+'</div><div class="card"><h3>Upcoming deadlines</h3><ul class="list">'+(up.length?up.map(t=>row(t)).join(''):'<li class="empty">Nothing coming up. Add a deadline to start your heatmap.</li>')+'</ul></div></div>';
+  el.innerHTML='<div class="grid"><div class="card" id="hm">'+heat(false)+'</div><div class="card"><h3>Upcoming deadlines</h3><ul class="list">'+(up.length?up.map(t=>row(t)).join(''):'<li class="empty">Nothing coming up. Add a deadline to start your heatmap.</li>')+'</ul></div></div>'+alerts();
  }else if(v==='cal'){
   const mk=iso(cy,cm,1).slice(0,7);
   let ms=tasks.filter(t=>t.due.startsWith(mk)).sort((a,b)=>a.due<b.due?-1:1);
@@ -205,10 +224,10 @@ function go(v,arg){
   el.innerHTML='<div class="grid"><div class="card" id="hm">'+heat(true)+'</div><div class="card"><h3>'+title+'</h3>'+(sel&&sel.startsWith(mk)?'<p style="margin:-6px 0 8px"><button class="link" id="clr">Show whole month</button></p>':'')+'<ul class="list">'+(ms.length?ms.map(t=>row(t,'sp')).join(''):'<li class="empty">No deadlines here. Pick another day or add one.</li>')+'</ul></div></div>';
  }else if(v==='add'){
   const e=editing,t=e||{title:'',subject:'',due:'',priority:'Medium',hours:''};
-  const subs=[...new Set(['CS 101','Math 101','English 12','IT 102','NSTP'].concat(tasks.map(x=>x.subject)))];
+  const subs=SUBJ;
   el.innerHTML='<form class="card panel" id="af" novalidate><button type="button" class="back" data-go="'+(e?'detail':'dash')+'">← '+(e?'Back to details':'Back to dashboard')+'</button><h3>'+(e?'Edit deadline':'Add deadline')+'</h3>'+
   '<label class="field"><span>Task / assignment</span><input class="inp" id="f_t" placeholder="e.g. Research Paper, Quiz 1" value="'+esc(t.title)+'"></label>'+
-  '<label class="field"><span>Subject</span><select class="inp" id="f_s"><option value="">Select subject</option>'+subs.map(s=>'<option'+(s===t.subject?' selected':'')+'>'+esc(s)+'</option>').join('')+'<option value="__new">+ New subject…</option></select></label>'+
+  '<label class="field"><span>Subject</span><select class="inp" id="f_s"><option value="">Select subject</option>'+subs.map(s=>'<option'+(s===t.subject?' selected':'')+'>'+esc(s)+'</option>').join('')+'</select></label>'+
   '<label class="field"><span>Due date</span><input class="inp" id="f_d" type="date" value="'+t.due+'"></label>'+
   '<label class="field"><span>Priority</span><select class="inp" id="f_p">'+['Low','Medium','High'].map(p=>'<option'+(p===t.priority?' selected':'')+'>'+p+'</option>').join('')+'</select></label>'+
   '<label class="field"><span>Estimated hours</span><input class="inp" id="f_h" type="number" min="0.5" step="0.5" placeholder="e.g. 3" value="'+t.hours+'"></label>'+
@@ -225,7 +244,7 @@ function go(v,arg){
   '<div class="meta"><div>Estimated hours<b>'+t.hours+' hours</b></div><div>Created<b>'+fmt(t.created)+'</b></div></div>'+
   '<div class="acts">'+(t.done?'<span class="pill p-Low" style="padding:10px 16px">Completed ✓</span><button class="btn ghost" id="undo">Mark as not done</button>':'<button class="btn ok" id="done">✓ Mark as complete</button>')+'<button class="btn ghost" id="edit">✎ Edit</button><button class="btn ghost" id="del">Delete</button></div></div>';
  }else if(v==='tasks'){
- const subs=[...new Set(tasks.map(t=>t.subject))];
+ const subs=SUBJ;
  el.innerHTML='<div class="card" style="margin-top:16px"><h3>All deadlines</h3><div class="filters"><input class="inp" id="q_q" type="search" placeholder="Search tasks or subjects" aria-label="Search" value="'+esc(flt.q)+'"><select class="inp" id="q_s" aria-label="Subject"><option value="">All subjects</option>'+subs.map(s=>'<option'+(s===flt.s?' selected':'')+'>'+esc(s)+'</option>').join('')+'</select><select class="inp" id="q_p" aria-label="Priority"><option value="">All priorities</option>'+['High','Medium','Low'].map(p=>'<option'+(p===flt.p?' selected':'')+'>'+p+'</option>').join('')+'</select><select class="inp" id="q_st" aria-label="Status">'+[['open','Open'],['overdue','Overdue'],['done','Completed'],['all','All']].map(a=>'<option value="'+a[0]+'"'+(a[0]===flt.st?' selected':'')+'>'+a[1]+'</option>').join('')+'</select></div><ul class="list" id="tl" style="margin-top:10px">'+tlist()+'</ul></div>';
 }else if(v==='stats'){
  const o=open(),dn=tasks.filter(t=>t.done).length,ov=o.filter(t=>t.due<TODAY).length,hl=o.reduce((a,t)=>a+t.hours,0),HC=['var(--l)','var(--m)','var(--b)','var(--u)'];
@@ -237,7 +256,7 @@ function go(v,arg){
  el.innerHTML='<div class="grid"><div class="card"><h3>Activity</h3>'+(logs.length?'<ul class="list log">'+logs.map(l=>'<li><b>'+l.k+'</b> '+esc(l.t)+'<small>'+new Date(l.ts).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</small></li>').join('')+'</ul><p style="margin:12px 0 0"><button class="link" id="clrlog">Clear activity</button></p>':'<p class="empty">No activity yet. Add or complete a deadline and it shows up here.</p>')+'</div><div class="card"><h3>Completed</h3><ul class="list">'+(dn.length?dn.map(t=>row(t,'sp')).join(''):'<li class="empty">Nothing completed yet.</li>')+'</ul></div></div>';
 }else if(v==='prof'){
   const dn=tasks.filter(t=>t.done).length,ov=open().filter(t=>t.due<TODAY).length;
-  el.innerHTML='<div class="card panel"><h3>Profile</h3><p style="margin:0 0 4px"><b>'+esc(user.name)+'</b></p><p style="margin:0 0 16px;color:var(--mute)">'+esc(user.id)+'</p><div class="meta" style="grid-template-columns:1fr 1fr 1fr"><div>Open<b>'+open().length+'</b></div><div>Completed<b>'+dn+'</b></div><div>Overdue<b>'+ov+'</b></div></div><div class="acts"><button class="btn ghost" id="theme">Switch light / dark</button><button class="btn ghost" id="out">Log out</button></div><h3 style="margin-top:24px">Reminders</h3><p class="hint">Overdue and due-soon deadlines show on your dashboard. Browser notifications work while the app is open.</p><button class="btn ghost" id="notif">'+(prefs.notif?'Turn off':'Turn on')+' browser reminders</button><h3 style="margin-top:24px">Backup</h3><p class="hint">Export copies your data so you can paste it on another device. Import replaces your current deadlines.</p><textarea class="inp" id="bk" rows="4" placeholder="Backup code appears here"></textarea><div class="acts" style="margin-top:8px"><button class="btn ghost" id="bexp">Export</button><button class="btn ghost" id="bimp">Import</button></div><p class="hint" id="bmsg" role="status" style="margin-top:8px"></p></div>';
+  el.innerHTML='<div class="card panel"><h3>Profile</h3><p style="margin:0 0 4px"><b>'+esc(user.name)+'</b></p><p style="margin:0 0 16px;color:var(--mute)">'+esc(user.id)+'</p><div class="meta" style="grid-template-columns:1fr 1fr 1fr"><div>Open<b>'+open().length+'</b></div><div>Completed<b>'+dn+'</b></div><div>Overdue<b>'+ov+'</b></div></div><h3>Appearance</h3>'+themeSeg()+'<h3 style="margin-top:24px">Reminders</h3><p class="hint">Overdue and due-soon deadlines show on your dashboard. Browser notifications work while the app is open.</p><button class="btn ghost" id="notif">'+(prefs.notif?'Turn off':'Turn on')+' browser reminders</button><h3 style="margin-top:24px">Password recovery</h3><p class="hint">'+(curRec()?'A recovery word is set. Enter a new one below to change it.':'No recovery word yet. Set one so you can reset your password if you forget it.')+'</p><div class="acts"><input class="inp" id="rec2" placeholder="Recovery word" autocomplete="off" style="flex:1"><button class="btn ghost" id="recSave">Save</button></div><p class="hint" id="recMsg" role="status" style="margin-top:8px"></p><h3 style="margin-top:24px">Backup</h3><p class="hint">Export copies your data so you can paste it on another device. Import replaces your current deadlines.</p><textarea class="inp" id="bk" rows="4" placeholder="Backup code appears here"></textarea><div class="acts" style="margin-top:8px"><button class="btn ghost" id="bexp">Export</button><button class="btn ghost" id="bimp">Import</button></div><p class="hint" id="bmsg" role="status" style="margin-top:8px"></p><h3 style="margin-top:24px">Account</h3><button class="btn ghost" id="out">Log out</button></div>';
  }
  window.scrollTo(0,0);
 }
@@ -246,6 +265,10 @@ function addD(s,n){const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);retu
 function alerts(){const o=open(),T1=addD(TODAY,1),g=[['bad','Overdue',o.filter(t=>t.due<TODAY)],['warn','Due today',o.filter(t=>t.due===TODAY)],['soon','Due tomorrow',o.filter(t=>t.due===T1)]].filter(a=>a[2].length);return g.length?'<div class="als">'+g.map(a=>'<div class="al '+a[0]+'" role="status"><b>'+a[1]+' ('+a[2].length+')</b> – '+a[2].slice(0,3).map(t=>esc(t.title)).join(', ')+(a[2].length>3?'…':'')+'</div>').join('')+'</div>':''}
 function tlist(){const q=flt.q.toLowerCase(),L=tasks.filter(t=>(!q||(t.title+' '+t.subject).toLowerCase().includes(q))&&(!flt.s||t.subject===flt.s)&&(!flt.p||t.priority===flt.p)&&(flt.st==='all'||(flt.st==='open'&&!t.done)||(flt.st==='done'&&t.done)||(flt.st==='overdue'&&!t.done&&t.due<TODAY))).sort((a,b)=>a.due<b.due?-1:1);return L.length?L.map(t=>row(t,'sp')).join(''):'<li class="empty">No deadlines match. Clear a filter or add a new deadline.</li>'}
 function ping(){try{if(!prefs.notif||Notification.permission!=='granted')return;const o=open(),a=o.filter(t=>t.due<TODAY).length,b=o.filter(t=>t.due===TODAY).length;if(a||b)new Notification('Deadline Heatmap',{body:(a?a+' overdue. ':'')+(b?b+' due today.':'')})}catch(_){}}
+function setTheme(m){store.set('dh_theme',m);applyTheme();if(view==='prof')go('prof')}
+function applyTheme(){const m=store.get('dh_theme')||'auto',r=document.documentElement;if(m==='auto')delete r.dataset.theme;else r.dataset.theme=m}
+function themeSeg(){const m=store.get('dh_theme')||'auto';return '<div class="seg" role="group" aria-label="Theme">'+[['light','☀ Light'],['dark','🌙 Dark'],['auto','Auto']].map(a=>'<button type="button" data-th="'+a[0]+'" aria-pressed="'+(m===a[0])+'" class="'+(m===a[0]?'on':'')+'">'+a[1]+'</button>').join('')+'</div>'}
+function curRec(){const f=users().find(x=>x.id===user.id);return f&&f.rec}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.remove('hide');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.add('hide'),2200)}
 
 /* events (delegated) */
@@ -262,6 +285,8 @@ document.addEventListener('click',e=>{
  else if(q('#undo')){const T=tasks.find(t=>t.id===cur);T.done=false;log('Reopened',T);save();go('detail',cur)}
  else if(q('#edit')){editing=tasks.find(t=>t.id===cur);go('add')}
  else if(q('#del')){const b=q('#del');if(b.dataset.s!=='1'){b.dataset.s='1';b.textContent='Tap again to delete';return}log('Deleted',tasks.find(t=>t.id===cur));tasks=tasks.filter(t=>t.id!==cur);save();toast('Deadline deleted');go('dash')}
+ else if(q('#recSave')){const v=$('#rec2').value.trim().toLowerCase();if(v.length<2){$('#recMsg').textContent='Use at least 2 characters.';return}const all=users(),f=all.find(x=>x.id===user.id);if(f){f.rec=v;store.set('dh_users',all);$('#recMsg').textContent='Recovery word saved.';$('#rec2').value=''}}
+ else if(x=q('[data-th]')){setTheme(x.dataset.th)}
  else if(q('#clrlog')){logs=[];store.set('dh_log_'+user.id,logs);go('hist')}
  else if(q('#notif')){if(prefs.notif){prefs.notif=false;store.set('dh_pref_'+user.id,prefs);go('prof');return}try{Notification.requestPermission().then(p=>{prefs.notif=p==='granted';store.set('dh_pref_'+user.id,prefs);toast(prefs.notif?'Browser reminders on':'Notifications are blocked. Allow them in your browser settings.');go('prof');if(prefs.notif)ping()})}catch(_){toast('This browser doesn’t support notifications.')}}
  else if(q('#bexp')){const s=JSON.stringify({app:'deadline-heatmap',v:1,tasks:tasks,logs:logs});$('#bk').value=s;$('#bk').select();try{navigator.clipboard.writeText(s).then(()=>{$('#bmsg').textContent='Backup copied. Paste it into a note or message to yourself.'},()=>{})}catch(_){}try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'application/json'}));a.download='deadline-heatmap-backup.json';a.click()}catch(_){}$('#bmsg').textContent='Backup ready. Copy the code above and paste it on your other device.'}
@@ -288,6 +313,8 @@ document.addEventListener('submit',e=>{
 });
 
 document.addEventListener('input',e=>{const i=e.target.id;if(!user||!i||i.indexOf('q_')!==0)return;flt[{q_q:'q',q_s:'s',q_p:'p',q_st:'st'}[i]]=e.target.value;$('#tl').innerHTML=tlist()});
+$('#lforgot').onclick=()=>{setSignup(false);forgot=true;$('#recRow').classList.remove('hide');$('#recLbl').textContent='Recovery word';$('#lpassL').textContent='New password';$('#lpass').placeholder='New password';$('#fgRow').classList.add('hide');$('#lbtn').textContent='Reset password';$('#lsw').textContent='Remembered it?';$('#ltoggle').textContent='Login'};
+applyTheme();
 /* init */
 const ses=store.get('dh_session');
 if(ses)start(ses);
